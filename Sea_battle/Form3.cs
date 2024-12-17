@@ -225,6 +225,7 @@ namespace Sea_battle
         public void CreateShip(object sender, EventArgs e) // Создание корабля
         {
             Button pressedButton = sender as Button;
+
             // Установка корабля первого игрока
             if (!P1_Ready)
             {
@@ -232,47 +233,37 @@ namespace Sea_battle
                 {
                     int x = pressedButton.Location.X / cellSize;
                     int y = pressedButton.Location.Y / cellSize - 1;
-                    switch (P1Map[y, x])
+
+                    // Временное изменение карты для проверки
+                    int previousState = P1Map[y, x];
+                    P1Map[y, x] = (previousState == 0) ? 1 : 0;
+
+                    // Проверка расстановки для первого игрока
+                    if (!IsValidPlacement(P1Map))
+                    {
+                        P1Map[y, x] = previousState;
+                        MessageBox.Show("Превышено максимальное количество кораблей или некорректное размещение!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    // Применяем изменения после проверки
+                    switch (previousState)
                     {
                         case 0:
-                            {
-                                pressedButton.BackColor = Color.Blue;
-                                P1Map[y, x] = 1;
-                                pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-                                pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Blue;
-                                pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Blue;
-                                break;
-                            }
+                            pressedButton.BackColor = Color.Blue;
+                            P1Map[y, x] = 1;
+                            pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+                            pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Blue;
+                            pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Blue;
+                            break;
+
                         case 1:
-                            {
-                                pressedButton.BackColor = System.Drawing.Color.Transparent;
-                                P1Map[y, x] = 0;
-                                pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-                                pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
-                                pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
-                                if (y != 10 && x != 10)
-                                {
-                                    P1Map[y + 1, x + 1] = 0;
-                                    P1Map[y + 1, x - 1] = 0;
-                                    P1Map[y - 1, x + 1] = 0;
-                                    P1Map[y - 1, x - 1] = 0;
-                                }
-                                if (y == 10 && x != 10)
-                                {
-                                    P1Map[y - 1, x + 1] = 0;
-                                    P1Map[y - 1, x - 1] = 0;
-                                }
-                                if (x == 10 && y != 10)
-                                {
-                                    P1Map[y + 1, x - 1] = 0;
-                                    P1Map[y - 1, x - 1] = 0;
-                                }
-                                if (x == 10 && y == 10)
-                                {
-                                    P1Map[y - 1, x - 1] = 0;
-                                }
-                                break;
-                            }
+                            pressedButton.BackColor = System.Drawing.Color.Transparent;
+                            P1Map[y, x] = 0;
+                            pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+                            pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
+                            pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
+                            break;
                     }
                 }
                 catch
@@ -280,85 +271,48 @@ namespace Sea_battle
                     MessageBox.Show("Расставляйте корабли на своей карте");
                 }
             }
-            // Блокировка полей
-            for (int i = 1; i < 11; i++)
-            {
-                for (int j = 1; j < 11; j++)
-                {
-                    if (P1Map[i, j] == 1)
-                    {
-                        if (j != 10 && i != 10)
-                        {
-                            P1Map[i + 1, j + 1] = 2;
-                            P1Map[i + 1, j - 1] = 2;
-                            P1Map[i - 1, j + 1] = 2;
-                            P1Map[i - 1, j - 1] = 2;
-                        }
-                        if (i == 10 && j != 10)
-                        {
-                            P1Map[i - 1, j + 1] = 2;
-                            P1Map[i - 1, j - 1] = 2;
-                        }
-                        if (j == 10 && i != 10)
-                        {
-                            P1Map[i + 1, j - 1] = 2;
-                            P1Map[i - 1, j - 1] = 2;
-                        }
-                        if (j == 10 && i == 10)
-                        {
-                            P1Map[i - 1, j - 1] = 2;
-                        }
-                    }
-                }
-            }
-            // Создание кораблей второго игрока
+
+            // Блокировка полей для первого игрока
+            BlockAdjacentCells(P1Map);
+
+            // Установка корабля второго игрока
             if (P1_Ready && !P2_Ready)
             {
                 try
                 {
                     int x = pressedButton.Location.X / cellSize - 21;
                     int y = pressedButton.Location.Y / cellSize - 1;
-                    switch (P2Map[y, x])
+
+                    // Временное изменение карты для проверки
+                    int previousState = P2Map[y, x];
+                    P2Map[y, x] = (previousState == 0) ? 1 : 0;
+
+                    // Проверка расстановки для второго игрока
+                    if (!IsValidPlacement(P2Map))
+                    {
+                        P2Map[y, x] = previousState;
+                        MessageBox.Show("Превышено максимальное количество кораблей или некорректное размещение!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    // Применяем изменения после проверки
+                    switch (previousState)
                     {
                         case 0:
-                            {
-                                pressedButton.BackColor = Color.Blue;
-                                P2Map[y, x] = 1;
-                                pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-                                pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Blue;
-                                pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Blue;
-                                break;
-                            }
+                            pressedButton.BackColor = Color.Blue;
+                            P2Map[y, x] = 1;
+                            pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+                            pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Blue;
+                            pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Blue;
+                            break;
+
                         case 1:
-                            {
-                                pressedButton.BackColor = System.Drawing.Color.Transparent;
-                                P2Map[y, x] = 0;
-                                pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-                                pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
-                                pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
-                                if (y != 10 && x != 10)
-                                {
-                                    P2Map[y + 1, x + 1] = 0;
-                                    P2Map[y + 1, x - 1] = 0;
-                                    P2Map[y - 1, x + 1] = 0;
-                                    P2Map[y - 1, x - 1] = 0;
-                                }
-                                if (y == 10 && x != 10)
-                                {
-                                    P2Map[y - 1, x + 1] = 0;
-                                    P2Map[y - 1, x - 1] = 0;
-                                }
-                                if (x == 10 && y != 10)
-                                {
-                                    P2Map[y + 1, x - 1] = 0;
-                                    P2Map[y - 1, x - 1] = 0;
-                                }
-                                if (x == 10 && y == 10)
-                                {
-                                    P2Map[y - 1, x - 1] = 0;
-                                }
-                                break;
-                            }
+                            pressedButton.BackColor = System.Drawing.Color.Transparent;
+                            P2Map[y, x] = 0;
+                            pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+                            pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
+                            pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
+                            break;
                     }
                 }
                 catch
@@ -366,38 +320,96 @@ namespace Sea_battle
                     MessageBox.Show("Расставляйте корабли на своей карте!");
                 }
             }
-            // Блокировка полей
+
+            // Блокировка полей для второго игрока
+            BlockAdjacentCells(P2Map);
+        }
+
+        // Метод для проверки корректности расстановки кораблей
+        private bool IsValidPlacement(int[,] map)
+        {
+            int singleShips = 0, doubleShips = 0, tripleShips = 0, quadrupleShips = 0;
+            bool[,] visited = new bool[cell, cell];
+
+            for (int i = 1; i < cell; i++)
+            {
+                for (int j = 1; j < cell; j++)
+                {
+                    if (map[i, j] == 1 && !visited[i, j])
+                    {
+                        int size = GetShipSize(i, j, map, visited);
+
+                        switch (size)
+                        {
+                            case 1: singleShips++; break;
+                            case 2: doubleShips++; break;
+                            case 3: tripleShips++; break;
+                            case 4: quadrupleShips++; break;
+                            default: return false;
+                        }
+                    }
+                }
+            }
+
+            return singleShips <= 4 && doubleShips <= 3 && tripleShips <= 2 && quadrupleShips <= 1;
+        }
+
+        // Метод для определения размера корабля
+        private int GetShipSize(int x, int y, int[,] map, bool[,] visited)
+        {
+            visited[x, y] = true;
+            int size = 1;
+
+            if (x > 1 && map[x - 1, y] == 1 && !visited[x - 1, y])
+                size += GetShipSize(x - 1, y, map, visited);
+
+            if (x < cell - 1 && map[x + 1, y] == 1 && !visited[x + 1, y])
+                size += GetShipSize(x + 1, y, map, visited);
+
+            if (y > 1 && map[x, y - 1] == 1 && !visited[x, y - 1])
+                size += GetShipSize(x, y - 1, map, visited);
+
+            if (y < cell - 1 && map[x, y + 1] == 1 && !visited[x, y + 1])
+                size += GetShipSize(x, y + 1, map, visited);
+
+            return size;
+        }
+
+        // Метод для блокировки соседних клеток
+        private void BlockAdjacentCells(int[,] map)
+        {
             for (int i = 1; i < 11; i++)
             {
                 for (int j = 1; j < 11; j++)
                 {
-                    if (P2Map[i, j] == 1)
+                    if (map[i, j] == 1)
                     {
                         if (j != 10 && i != 10)
                         {
-                            P2Map[i + 1, j + 1] = 2;
-                            P2Map[i + 1, j - 1] = 2;
-                            P2Map[i - 1, j + 1] = 2;
-                            P2Map[i - 1, j - 1] = 2;
+                            map[i + 1, j + 1] = 2;
+                            map[i + 1, j - 1] = 2;
+                            map[i - 1, j + 1] = 2;
+                            map[i - 1, j - 1] = 2;
                         }
                         if (i == 10 && j != 10)
                         {
-                            P2Map[i - 1, j + 1] = 2;
-                            P2Map[i - 1, j - 1] = 2;
+                            map[i - 1, j + 1] = 2;
+                            map[i - 1, j - 1] = 2;
                         }
                         if (j == 10 && i != 10)
                         {
-                            P2Map[i + 1, j - 1] = 2;
-                            P2Map[i - 1, j - 1] = 2;
+                            map[i + 1, j - 1] = 2;
+                            map[i - 1, j - 1] = 2;
                         }
                         if (j == 10 && i == 10)
                         {
-                            P2Map[i - 1, j - 1] = 2;
+                            map[i - 1, j - 1] = 2;
                         }
                     }
                 }
             }
         }
+
 
         public void P1ready(object sender, EventArgs e) // Проверка готовности игрока 1
         {

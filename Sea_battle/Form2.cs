@@ -116,10 +116,10 @@ namespace Sea_battle
                     }
                     myButton[i, j] = button;
                     this.Controls.Add(button);
-                    this.myButton[i,j].BackColor = System.Drawing.Color.Transparent;
-                    this.myButton[i,j].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-                    this.myButton[i,j].FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
-                    this.myButton[i,j].FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
+                    this.myButton[i, j].BackColor = System.Drawing.Color.Transparent;
+                    this.myButton[i, j].FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+                    this.myButton[i, j].FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
+                    this.myButton[i, j].FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
                 }
             }
 
@@ -176,7 +176,7 @@ namespace Sea_battle
             this.rightMap.BackColor = System.Drawing.Color.Transparent;
 
             leftMap.Font = rightMap.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            
+
             buttonStart.Location = new Point(cell * cellSize + 3 * cellSize, 2 * cellSize);
             buttonStart.Size = new Size(cellSize * 4, cellSize); buttonStart.Text = "Начать";
             buttonStart.Click += new EventHandler(Start); this.Controls.Add(buttonStart);
@@ -279,48 +279,43 @@ namespace Sea_battle
             if (!Player_On)
             {
                 int x = pressedButton.Location.X / cellSize;
-                int y = pressedButton.Location.Y / cellSize - 1; 
-                switch (myMap[y, x]) // Создание/удаление корабля
+                int y = pressedButton.Location.Y / cellSize - 1;
+
+                // Временное обновление карты для проверки
+                int previousState = myMap[y, x]; // Сохраняем текущее состояние клетки
+                myMap[y, x] = (previousState == 0) ? 1 : 0; // Инвертируем состояние клетки
+
+                // Проверяем корректность расстановки
+                if (!IsValidPlacement())
                 {
-                    case 0:
-                        pressedButton.BackColor = Color.Blue; 
-                        myMap[y, x] = 1;
+                    // Если размещение некорректно, возвращаем клетке исходное состояние
+                    myMap[y, x] = previousState;
+                    MessageBox.Show("Превышено максимальное количество кораблей или некорректное размещение!", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Применяем изменения только если проверка пройдена
+                switch (previousState)
+                {
+                    case 0: // Если клетка была пустой
+                        pressedButton.BackColor = Color.Blue;
+                        myMap[y, x] = 1; // Устанавливаем корабль
                         pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
                         pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Blue;
                         pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Blue;
                         break;
-                        
-                    case 1:
+
+                    case 1: // Если клетка была занята
                         pressedButton.BackColor = System.Drawing.Color.Transparent;
-                        myMap[y, x] = 0;
+                        myMap[y, x] = 0; // Убираем корабль
                         pressedButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
                         pressedButton.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
                         pressedButton.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
-                        if (y != 10 && x != 10)
-                        {
-                            myMap[y + 1, x + 1] = 0;
-                            myMap[y + 1, x - 1] = 0;
-                            myMap[y - 1, x + 1] = 0;
-                            myMap[y - 1, x - 1] = 0;
-                        }
-                        if (y == 10 && x != 10)
-                        {
-                            myMap[y - 1, x + 1] = 0;
-                            myMap[y - 1, x - 1] = 0;
-                        }
-                        if (x == 10 && y != 10)
-                        {
-                            myMap[y + 1, x - 1] = 0;
-                            myMap[y - 1, x - 1] = 0;
-                        }
-                        if (x == 10 && y == 10)
-                        {
-                            myMap[y - 1, x - 1] = 0;
-                        }
                         break;
-                        
                 }
             }
+
+            // Сохранение существующего механизма блокировки соседних клеток
             for (int i = 1; i < 11; i++) // Блокировка полей наискосок от занятых полей
             {
                 for (int j = 1; j < 11; j++)
@@ -352,6 +347,63 @@ namespace Sea_battle
                 }
             }
         }
+
+        // Метод для проверки корректности расстановки кораблей
+        private bool IsValidPlacement()
+        {
+            int singleShips = 0, doubleShips = 0, tripleShips = 0, quadrupleShips = 0;
+            bool[,] visited = new bool[cell, cell]; // Для отслеживания проверенных клеток
+
+            for (int i = 1; i < cell; i++)
+            {
+                for (int j = 1; j < cell; j++)
+                {
+                    if (myMap[i, j] == 1 && !visited[i, j])
+                    {
+                        int size = GetShipSize(i, j, visited); // Определяем размер корабля
+
+                        // Увеличиваем соответствующий счётчик
+                        switch (size)
+                        {
+                            case 1: singleShips++; break;
+                            case 2: doubleShips++; break;
+                            case 3: tripleShips++; break;
+                            case 4: quadrupleShips++; break;
+                            default: return false; // Корабль больше 4 клеток — некорректно
+                        }
+                    }
+                }
+            }
+
+            // Проверка ограничения на количество кораблей
+            return singleShips <= 4 && doubleShips <= 3 && tripleShips <= 2 && quadrupleShips <= 1;
+        }
+
+        // Метод для определения размера корабля
+        private int GetShipSize(int x, int y, bool[,] visited)
+        {
+            visited[x, y] = true;
+            int size = 1; // Начинаем с одной клетки
+
+            // Проверяем все соседние клетки (по горизонтали и вертикали)
+            if (x > 1 && myMap[x - 1, y] == 1 && !visited[x - 1, y])
+                size += GetShipSize(x - 1, y, visited);
+
+            if (x < cell - 1 && myMap[x + 1, y] == 1 && !visited[x + 1, y])
+                size += GetShipSize(x + 1, y, visited);
+
+            if (y > 1 && myMap[x, y - 1] == 1 && !visited[x, y - 1])
+                size += GetShipSize(x, y - 1, visited);
+
+            if (y < cell - 1 && myMap[x, y + 1] == 1 && !visited[x, y + 1])
+                size += GetShipSize(x, y + 1, visited);
+
+            return size;
+        }
+
+
+
+
 
         public void CheckShip() // Проверка расстановки кораблей
         {
@@ -635,7 +687,7 @@ namespace Sea_battle
                         napravlenie[2] = "right";
                         napravlenie[3] = "bottom";
 
-                        // Направление дальнейшей стрельбы (рядом с раненым)
+                    // Направление дальнейшей стрельбы (рядом с раненым)
                     a:
                         string napr = napravlenie[rnd.Next(0, napravlenie.Length - 1)];
                         switch (napr)
@@ -690,35 +742,35 @@ namespace Sea_battle
                                 break;
                         }
                         break;
-                    
+
                     // 2 поля с попаданиями
                     case 2:
                         // Расположены горизонтально
                         if (wound_y[1] == wound_y[2])
+                        {
+                            string[] napr2hor = new string[2];
+                            napr2hor[0] = "left";
+                            napr2hor[1] = "right";
+                            string naprHor = napr2hor[rnd.Next(0, napr2hor.Length - 1)];
+                            switch (naprHor)
                             {
-                                string[] napr2hor = new string[2];
-                                napr2hor[0] = "left";
-                                napr2hor[1] = "right";
-                                string naprHor = napr2hor[rnd.Next(0, napr2hor.Length - 1)];
-                                switch (naprHor)
-                                {
-                                    case "left":
-                                        if (wound_x[1] != 1 && myMap[wound_y[1], wound_x[1] - 1] != 5)
-                                        {
-                                            x_BotShot = wound_x[1] - 1;
-                                            y_BotShot = wound_y[1];
-                                        }
-                                        else goto case "right";
-                                        break;
-                                    case "right":
-                                        if (wound_x[2] != 10 && myMap[wound_y[2], wound_x[2] + 1] != 5)
-                                        {
-                                            x_BotShot = wound_x[2] + 1;
-                                            y_BotShot = wound_y[2];
-                                        }
-                                        else goto case "left";
-                                        break;
-                                }
+                                case "left":
+                                    if (wound_x[1] != 1 && myMap[wound_y[1], wound_x[1] - 1] != 5)
+                                    {
+                                        x_BotShot = wound_x[1] - 1;
+                                        y_BotShot = wound_y[1];
+                                    }
+                                    else goto case "right";
+                                    break;
+                                case "right":
+                                    if (wound_x[2] != 10 && myMap[wound_y[2], wound_x[2] + 1] != 5)
+                                    {
+                                        x_BotShot = wound_x[2] + 1;
+                                        y_BotShot = wound_y[2];
+                                    }
+                                    else goto case "left";
+                                    break;
+                            }
                         }
 
                         // Расположены вертикально
@@ -811,14 +863,14 @@ namespace Sea_battle
                             }
                         }
                         break;
-                
+
                     // Нет полей с попаданиями
                     default:
                         x_BotShot = rnd.Next(1, 11);
                         y_BotShot = rnd.Next(1, 11);
                         break;
                 }
-            
+
                 switch (myMap[y_BotShot, x_BotShot]) // Выстрел компьютера
                 {
                     case 1:
@@ -852,7 +904,7 @@ namespace Sea_battle
 
                 richTextBox.SelectionStart = richTextBox.Text.Length;
                 richTextBox.ScrollToCaret();
-            
+
             }
         }
 
@@ -951,7 +1003,7 @@ namespace Sea_battle
             if (mapinfo[k] != 'B')
             {
                 MessageBox.Show("Не удалось загрузить сохранение. Возможно, это сохранение из другого режима");
-            return;
+                return;
             }
             k++;
             Restart();
@@ -994,7 +1046,7 @@ namespace Sea_battle
                     k++;
                 }
             }
-            
+
             for (int i = 1; i < cell; i++)
             {
                 for (int j = 1; j < cell; j++)
@@ -1357,7 +1409,7 @@ namespace Sea_battle
             {
                 Game = false;
                 DialogResult result = MessageBox.Show("Вы победили! Начать заново? ", "Конец игры", MessageBoxButtons.YesNo);
-            if (result == DialogResult.Yes)
+                if (result == DialogResult.Yes)
                 {
                     NewGame(this, new EventArgs());
                 }
@@ -1651,7 +1703,7 @@ namespace Sea_battle
             for (int i = 1; i < cell; i++) // Окраска в синий цвет полей вокруг убитого корабля
             {
                 for (int j = 1; j < cell; j++)
-                    {
+                {
                     if (myMap[i, j] == 5)
                     {
                         myButton[i, j].Enabled = false;
